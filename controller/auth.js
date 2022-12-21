@@ -20,6 +20,11 @@ exports.login=asyncHandler(async (req,res,next)=>{
     if(!user){
        return next(new errorResponse('Invalid Input',404));
     }
+
+    if(!user.isVerified){
+        return next(new errorResponse('Please verify your email',401));
+    }
+
     const matchPassword=await user.matchPassword(req.body.password);
 
     if(!matchPassword){
@@ -30,15 +35,57 @@ exports.login=asyncHandler(async (req,res,next)=>{
 })
 
 exports.register=asyncHandler(async (req,res,next)=>{
-    const {name,email,password}=req.body;
+    const {name,email,password,role}=req.body;
 
     if(!emailValidator.validate(email)){
         return next(new errorResponse('Please provide a valid email',400));
     }
     
-    const user=await User.create(req.body);
+    const user=await User.create({name,email,password,role});
+
+    const token=user.getVerificationToken();
+
+    await user.save({validateBeforeSave:false});
+
+    const verificationUrl = `${req.protocol}://${req.get(
+        'host',
+        )}/api/v1/user/verify/${token}`;
+
+    const message=`Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+    try{
+        await sendEmail({
+            email:user.email,
+            subject:'Email Verification',
+            message
+        })
+        res.status(200).json({ success: true, data: 'Email sent' });
+    }catch(err){
+        console.log(err);
+        user.verificationToken=undefined;
+        user.verificationTokenExpire=undefined;
+        await user.save({validateBeforeSave:false});
+        return next(new errorResponse('Email could not be sent',500));
+    }
+})
+
+exports.verifyEmail=asyncHandler(async (req,res,next)=>{
+    const verificationToken=crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+    const user=await User.findOne({verificationToken:verificationToken,verificationTokenExpire:{$gt:Date.now()}});
+
+    if(!user){
+        return next(new errorResponse('Invalid Token',400));
+    }
+
+    user.isVerified=true;
+    user.verificationToken=undefined;
+    user.verificationTokenExpire=undefined;
+
+    await user.save({validateBeforeSave:false});
 
     sendTokenResponse(user,200,res);
+
 })
 
 const sendTokenResponse=(user,statusCode,res)=>{
@@ -134,4 +181,14 @@ exports.resetPassword=asyncHandler(async (req,res,next)=>{
     await user.save();
 
     sendTokenResponse(user,200,res);
+})
+
+exports.logout=asyncHandler(async (req,res,next)=>{
+    res.cookie('token','none',{
+        expires:new Date(Date.now()+10*1000),
+        httpOnly:true
+    })
+
+    res.status(200).send({status:"success",data:{}})
+
 })

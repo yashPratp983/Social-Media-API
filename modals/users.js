@@ -37,6 +37,12 @@ const userSchema=new mongoose.Schema({
     followers:[{
         type:mongoose.Schema.ObjectId,
     }],
+    isVerified:{
+        type:Boolean,
+        default:false
+    },
+    verificationToken:String,
+    verificationTokenExpire:Date,
     resetPasswordToken:String,
     resetPasswordExpire:Date,
     createdAt:{
@@ -69,6 +75,13 @@ userSchema.methods.getResetPasswordToken=function(){
     this.resetPasswordToken=crypto.createHash('sha256').update(resetToken).digest('hex');
     this.resetPasswordExpire=Date.now()+10*60*1000;
     return resetToken;
+}
+
+userSchema.methods.getVerificationToken=function(){
+    const verificationToken=crypto.randomBytes(20).toString('hex');
+    this.verificationToken=crypto.createHash('sha256').update(verificationToken).digest('hex');
+    this.verificationTokenExpire=Date.now()+10*60*1000;
+    return verificationToken;
 }
 
 module.exports=mongoose.model('Users',userSchema);

@@ -25,6 +25,12 @@ const postSchema=new mongoose.Schema({
     }
 )
 
+postSchema.pre('remove',async function(next){
+    await this.model('Comments').deleteMany({post:this._id});
+    await this.model('Likes').deleteMany({post:this._id});
+    next();
+})
+
 postSchema.virtual('comments',{
     ref:'Comments',
     localField:'_id',

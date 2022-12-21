@@ -1,7 +1,7 @@
 const express=require('express');
 const router=express.Router();
 
-const {login,register,updatePassword,updateUserCrediantials,forgotPasswordToken,resetPassword}=require('../controller/auth');
+const {login,register,updatePassword,updateUserCrediantials,forgotPasswordToken,resetPassword,verifyEmail,logout}=require('../controller/auth');
 const {follow,unfollow,getProfile}=require('../controller/user');
 const {protect,authorisation}=require('../middleware/auth');
 
@@ -15,6 +15,8 @@ router.route('/follow/:id').put(protect,follow)
 router.route('/unfollow/:id').put(protect,unfollow)
 router.route('/update').put(protect,updateUserCrediantials)
 router.route('/updatePassword').put(protect,updatePassword)
+router.route('/verify/:token').get(verifyEmail);
+router.route('/logout').get(protect,logout);
 
 
 module.exports=router;
