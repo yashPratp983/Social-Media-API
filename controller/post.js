@@ -19,7 +19,7 @@ exports.updatePost=asyncHandler(async(req,res,next)=>{
         return next(new errorResponse(`Post not found with id ${req.params.id}`,401));
     }
 
-    if(!(updatePost.user!=req.user._id)){
+    if(!(updatePost.user!=req.user._id) && !(req.user.role==='admin')){
         return next(new errorResponse('Not authorized to update the post',404));
     }
 
@@ -33,7 +33,7 @@ exports.deletePost=asyncHandler(async(req,res,next)=>{
         return next(new errorResponse(`Post not found with id ${req.params.id}`,401));
     }
 
-    if(!(delpost.user!=req.user._id)){
+    if(!(delpost.user!=req.user._id) && !(req.user.role==='admin')){
         return next(new errorResponse('Not authorized to delete the post',404));
     }
     delpost.remove();
@@ -97,7 +97,7 @@ exports.editComment=asyncHandler(async(req,res,next)=>{
         next(new errorResponse(`No comments found with id ${req.params.commentId}`,401));
     }
     
-    if(comment.content[commentIndex].user!=req.user.id){
+    if(comment.content[commentIndex].user!=req.user.id && req.user.role!=='admin'){
         next(new errorResponse(`Not authorized to edit the comment`,401));
     }
 
@@ -120,7 +120,7 @@ exports.deleteComment=asyncHandler(async(req,res,next)=>{
        return next(new errorResponse(`No comments found with id ${req.params.commentId}`,401));
     }
     
-    if(comment.content[commentIndex].user!=req.user.id){
+    if(comment.content[commentIndex].user!=req.user.id && req.user.role!=='admin'){
        return next(new errorResponse(`Not authorized to delete the comment`,401));
     }
 

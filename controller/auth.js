@@ -120,11 +120,37 @@ exports.updatePassword=asyncHandler(async (req,res,next)=>{
 })
 
 exports.updateUserCrediantials=asyncHandler(async (req,res,next)=>{
-    if(req.body.password){
-        return next(new errorResponse('Not authorized to change password',404));
+    if(req.body.password ||  req.body.role || req.body.isVerified){
+        return next(new errorResponse('Not authorized to change password,role,isVerified',404));
     }
 
     const user=await User.findByIdAndUpdate(req.user._id,req.body,{new:true,runValidators:true});
+
+    if(req.body.email){
+        const token=user.getVerificationToken();
+        await user.save({validateBeforeSave:false});
+
+        const verificationUrl = `${req.protocol}://${req.get(
+            'host',
+            )}/api/v1/user/verify/${token}`;
+
+        const message=`Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+        try{
+            await sendEmail({
+                email:user.email,
+                subject:'Email Verification',
+                message
+            })
+          return res.status(200).json({ success: true, data: 'Email sent',user});
+        }catch(err){
+            console.log(err);
+            user.verificationToken=undefined;
+            user.verificationTokenExpire=undefined;
+            await user.save({validateBeforeSave:false});
+            return next(new errorResponse('Email could not be sent',500));
+        }
+    }
 
     res.status(200).json({status:true,data:user});
 })
