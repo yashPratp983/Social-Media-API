@@ -5,6 +5,7 @@ const { Server } = require('http');
 const mongoose=require('mongoose')
 const morgan=require('morgan');
 const user=require('./routes/user');
+const users=require('./routes/users');
 const errorResponse=require('./middleware/errorHandler')
 const allPosts=require('./routes/allposts')
 const cookieParser=require('cookie-parser')
@@ -14,6 +15,7 @@ const helmet = require('helmet');
 const xss = require('xss-clean');
 const cors=require('cors');
 const hpp=require('hpp');
+const fileUpload=require('express-fileupload');
 
 mongoose.set('strictQuery', true);
 dotenv.config({ path: './config/config.env' })
@@ -29,10 +31,12 @@ app.use(mongoSanitize());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
+app.use(fileUpload({useTempFiles:true}));
 
 app.use('/api/v1/user',user);
 app.use('/api/v1/posts',post);
 app.use('/api/v1/all_posts',allPosts);
+app.use('/api/v1/adminusers',users);
 app.use(errorResponse)
 connectDB();
 
