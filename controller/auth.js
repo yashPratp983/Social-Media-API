@@ -7,6 +7,7 @@ const jwt = require('json-web-token');
 const sendEmail = require('../utils/emailHandler');
 const crypto = require('crypto');
 const emailValidator = require('email-validator');
+const cloudinary = require('../utils/cloudinary');
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
@@ -49,7 +50,12 @@ exports.register = asyncHandler(async (req, res, next) => {
         return next(new errorResponse('User already exists with given name', 400));
     }
 
-    const user = await User.create({ name, email, password, role });
+    const profilePic = {
+        public_id: 'profilePic/defaultMentor_aucyyg',
+        url: 'https://res.cloudinary.com/dbatsdukp/image/upload/v1673782839/profilePic/defaultMentor_aucyyg.jpg'
+    }
+
+    const user = await User.create({ name, email, password, role, profilePic });
 
     const token = user.getVerificationToken();
 
