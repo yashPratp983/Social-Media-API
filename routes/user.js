@@ -1,13 +1,7 @@
-<<<<<<< HEAD
 
 const express = require('express');
 const router = express.Router();
 
-=======
-const express = require('express');
-const router = express.Router();
-
->>>>>>> 319f79ea10e70072f8a674c4c9cca73f1b8c2371
 const { login, register, updatePassword, updateUserCrediantials, forgotPasswordToken, resetPassword, verifyEmail, logout } = require('../controller/auth');
 const { follow, unfollow, getProfile, uploadProfilePic, deleteProfilePic, addBio } = require('../controller/user');
 const { protect, authorisation } = require('../middleware/auth');

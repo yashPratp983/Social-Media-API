@@ -130,7 +130,6 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 
     sendTokenResponse(user, 200, res);
 })
-
 exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
     if (req.body.password || req.body.role || req.body.isVerified) {
         return next(new errorResponse('Not authorized to change password,role,isVerified', 404));
