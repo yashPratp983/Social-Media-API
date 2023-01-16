@@ -151,9 +151,7 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
             user = await User.findByIdAndUpdate(req.user._id, { isVerified: false }, { new: true, runValidators: true });
         }
 
-        const verificationUrl = `${req.protocol}://${req.get(
-            'host',
-        )}/api/v1/user/verify/${token}`;
+        const verificationUrl = `http://127.0.0.1:5173/editemailverification/${token}`;
 
         const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
 
