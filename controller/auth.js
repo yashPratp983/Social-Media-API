@@ -152,13 +152,6 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
         }
 
         const verificationUrl = `http://127.0.0.1:5173/editemailverification/${token}`;
-
-        const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
-
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Email Verification',
                 message
             })
             return res.status(200).json({ success: true, data: 'Email sent', user });
