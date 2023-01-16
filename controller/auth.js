@@ -130,21 +130,27 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 
     sendTokenResponse(user, 200, res);
 })
-
 exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
     if (req.body.password || req.body.role || req.body.isVerified) {
         return next(new errorResponse('Not authorized to change password,role,isVerified', 404));
     }
+    const user1 = await User.findById(req.user._id);
+    if (user1.email === req.body.email || !req.body.email) {
+        const user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
+        res.status(200).json({ data: user })
+    }
+    else {
+        let user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
 
-    const user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
 
-    if (req.body.email) {
         const token = user.getVerificationToken();
         await user.save({ validateBeforeSave: false });
 
-        const verificationUrl = `${req.protocol}://${req.get(
-            'host',
-        )}/api/v1/user/verify/${token}`;
+        if (user) {
+            user = await User.findByIdAndUpdate(req.user._id, { isVerified: false }, { new: true, runValidators: true });
+        }
+
+        const verificationUrl = `http://127.0.0.1:5173/editemailverification/${token}`;
 
         const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
 
@@ -162,9 +168,9 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
             await user.save({ validateBeforeSave: false });
             return next(new errorResponse('Email could not be sent', 500));
         }
-    }
 
-    res.status(200).json({ status: true, data: user });
+        res.status(200).json({ status: true, data: user });
+    }
 })
 
 exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {

@@ -126,4 +126,3 @@ exports.addBio = asyncHandler(async (req, res, next) => {
     user = await User.findById(req.user._id);
     res.status(200).send({ success: true, data: user });
 })
-
