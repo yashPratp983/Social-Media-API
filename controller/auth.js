@@ -135,12 +135,21 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
     if (req.body.password || req.body.role || req.body.isVerified) {
         return next(new errorResponse('Not authorized to change password,role,isVerified', 404));
     }
+    const user1 = await User.findById(req.user._id);
+    if (user1.email === req.body.email || !req.body.email) {
+        const user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
+        res.status(200).json({ data: user })
+    }
+    else {
+        let user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
 
-    const user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
 
-    if (req.body.email) {
         const token = user.getVerificationToken();
         await user.save({ validateBeforeSave: false });
+
+        if (user) {
+            user = await User.findByIdAndUpdate(req.user._id, { isVerified: false }, { new: true, runValidators: true });
+        }
 
         const verificationUrl = `${req.protocol}://${req.get(
             'host',
@@ -162,9 +171,9 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
             await user.save({ validateBeforeSave: false });
             return next(new errorResponse('Email could not be sent', 500));
         }
-    }
 
-    res.status(200).json({ status: true, data: user });
+        res.status(200).json({ status: true, data: user });
+    }
 })
 
 exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
