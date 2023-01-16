@@ -7,7 +7,10 @@ const jwt = require('json-web-token');
 const sendEmail = require('../utils/emailHandler');
 const crypto = require('crypto');
 const emailValidator = require('email-validator');
+<<<<<<< HEAD
 const cloudinary = require('../utils/cloudinary');
+=======
+>>>>>>> 3242e70 (added small changes in auth)
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
@@ -50,12 +53,16 @@ exports.register = asyncHandler(async (req, res, next) => {
         return next(new errorResponse('User already exists with given name', 400));
     }
 
+<<<<<<< HEAD
     const profilePic = {
         public_id: 'profilePic/defaultMentor_aucyyg',
         url: 'https://res.cloudinary.com/dbatsdukp/image/upload/v1673782839/profilePic/defaultMentor_aucyyg.jpg'
     }
 
     const user = await User.create({ name, email, password, role, profilePic });
+=======
+    const user = await User.create({ name, email, password, role });
+>>>>>>> 3242e70 (added small changes in auth)
 
     const token = user.getVerificationToken();
 
@@ -143,6 +150,7 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
     else {
         let user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
 
+<<<<<<< HEAD
 
         const token = user.getVerificationToken();
         await user.save({ validateBeforeSave: false });
@@ -152,6 +160,27 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
         }
 
         const verificationUrl = `http://127.0.0.1:5173/editemailverification/${token}`;
+
+        const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+=======
+    const user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
+
+    if (req.body.email) {
+        const token = user.getVerificationToken();
+        await user.save({ validateBeforeSave: false });
+
+        const verificationUrl = `${req.protocol}://${req.get(
+            'host',
+        )}/api/v1/user/verify/${token}`;
+
+        const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+>>>>>>> 3242e70 (added small changes in auth)
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'Email Verification',
                 message
             })
             return res.status(200).json({ success: true, data: 'Email sent', user });
@@ -163,8 +192,12 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
             return next(new errorResponse('Email could not be sent', 500));
         }
 
+<<<<<<< HEAD
         res.status(200).json({ status: true, data: user });
     }
+=======
+    res.status(200).json({ status: true, data: user });
+>>>>>>> 3242e70 (added small changes in auth)
 })
 
 exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
