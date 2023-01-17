@@ -22,9 +22,9 @@ exports.login = asyncHandler(async (req, res, next) => {
         return next(new errorResponse('Invalid Input', 404));
     }
 
-    if (!user.isVerified) {
-        return next(new errorResponse('Please verify your email', 401));
-    }
+    // if (!user.isVerified) {
+    //     return next(new errorResponse('Please verify your email', 401));
+    // }
 
     const matchPassword = await user.matchPassword(req.body.password);
 
@@ -122,7 +122,7 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 
     const matchPassword = await user.matchPassword(req.body.currentPassword);
     if (!matchPassword) {
-        return next(new errorResponse('Invalid Input', 404));
+        return next(new errorResponse('Incorrect Password', 404));
     }
 
     user.password = req.body.newPassword;
@@ -177,13 +177,11 @@ exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
     const user = await User.findOne({ email: req.body.email });
 
     if (!user) {
-        return next(new errorResponse('User.not found with given email', 404));
+        return next(new errorResponse('User not found with given email', 404));
     }
 
     const resetToken = user.getResetPasswordToken();
-    const resetUrl = `${req.protocol}://${req.get(
-        'host',
-    )}/api/v1/user/resetpassword/${resetToken}`;
+    const resetUrl = `http://127.0.0.1:5173/resetpassword/${resetToken}}`;
 
     await user.save({ validateBeforeSave: false });
 
