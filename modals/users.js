@@ -90,7 +90,7 @@ userSchema.methods.matchPassword = function (password) {
 }
 
 userSchema.methods.getSignedJwtToken = function () {
-    return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
+    return jwt.sign({ id: this._id, password: this.password }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRE
     });
 }
