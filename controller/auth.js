@@ -16,10 +16,17 @@ exports.login = asyncHandler(async (req, res, next) => {
         return next(new errorResponse('Please provide an email and password', 400));
     }
 
-    const user = await User.findOne({ email: req.body.email }).select('+password')
+    let user = await User.findOne({ email: req.body.email }).select('+password')
 
     if (!user) {
-        return next(new errorResponse('Invalid Input', 404));
+        user = await User.findOne({ unverifiedEmail: req.body.email }).select('+password')
+
+        if (user) {
+            return next(new errorResponse('Please verify your email', 401));
+        }
+        else {
+            return next(new errorResponse('Invalid Input', 400));
+        }
     }
 
     // if (!user.isVerified) {
@@ -55,7 +62,7 @@ exports.register = asyncHandler(async (req, res, next) => {
         url: 'https://res.cloudinary.com/dbatsdukp/image/upload/v1673782839/profilePic/defaultMentor_aucyyg.jpg'
     }
 
-    const user = await User.create({ name, email, password, role, profilePic });
+    const user = await User.create({ name, unverifiedEmail: email, password, role, profilePic });
 
     const token = user.getVerificationToken();
 
@@ -67,7 +74,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 
     try {
         await sendEmail({
-            email: user.email,
+            email: req.body.email,
             subject: 'Email Verification',
             message
         })
@@ -84,17 +91,21 @@ exports.register = asyncHandler(async (req, res, next) => {
 exports.verifyEmail = asyncHandler(async (req, res, next) => {
     const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
-    const user = await User.findOne({ verificationToken: verificationToken, verificationTokenExpire: { $gt: Date.now() } });
+    const user = await User.findOne({ verificationToken: verificationToken, verificationTokenExpire: { $gt: Date.now() } }).select('+password');
+    console.log(user)
 
-    if (!user) {
-        return next(new errorResponse('Invalid Token', 400));
-    }
 
     user.isVerified = true;
+    user.email = user.unverifiedEmail;
+    user.unverifiedEmail = undefined;
     user.verificationToken = undefined;
     user.verificationTokenExpire = undefined;
 
     await user.save({ validateBeforeSave: false });
+
+    if (!user) {
+        return next(new errorResponse('Invalid Token', 400));
+    }
 
     sendTokenResponse(user, 200, res);
 
@@ -140,7 +151,10 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
         res.status(200).json({ data: user })
     }
     else {
-        let user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
+        req.body.unverifiedEmail = req.body.email;
+        const request = req.body;
+        delete request.email;
+        let user = await User.findByIdAndUpdate(req.user._id, request, { new: true, runValidators: true });
 
 
         const token = user.getVerificationToken();
@@ -156,7 +170,7 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
 
         try {
             await sendEmail({
-                email: user.email,
+                email: request.unverifiedEmail,
                 subject: 'Email Verification',
                 message
             })
