@@ -4,13 +4,11 @@ const cloudinary = require('../utils/cloudinary');
 const postSchema = new mongoose.Schema({
     title: {
         type: String,
-        required: [true, 'Please add a title'],
         trim: true,
         maxlength: 100
     },
     description: {
         type: String,
-        required: [true, "Please add description"],
         default: ''
     },
     user: {
