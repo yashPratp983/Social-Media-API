@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
     },
     unverifiedEmail: {
         type: String,
-        unique: true,
+        unique: false,
         match: [
             /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
             'Please add a valid email'
