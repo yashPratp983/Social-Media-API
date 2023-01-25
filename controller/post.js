@@ -99,6 +99,8 @@ exports.comment = asyncHandler(async (req, res, next) => {
     res.status(200).send({ success: true, data: comment });
 })
 
+
+
 exports.editComment = asyncHandler(async (req, res, next) => {
     const comment = await Comment.findOne({ post: req.params.postId });
 
