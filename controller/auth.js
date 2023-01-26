@@ -139,7 +139,6 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
         let user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
 
 
-        const user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
 
         if (req.body.email) {
             const token = user.getVerificationToken();
@@ -168,9 +167,9 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
 
             res.status(200).json({ status: true, data: user });
         }
-
-        res.status(200).json({ status: true, data: user });
-    })
+    }
+    res.status(200).json({ status: true, data: user });
+})
 
 exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
     const user = await User.findOne({ email: req.body.email });
