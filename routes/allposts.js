@@ -6,5 +6,4 @@ const { createNewPost, deletePost, like, unlike, comment, getPostDetails, getAll
 router.route('/').get(protect, getAllPosts);
 router.route('/every').get(protect, getEveryPosts);
 
-
 module.exports = router;

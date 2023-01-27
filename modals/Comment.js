@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const commentSchema = new mongoose.Schema({
     content: [{
         user: { type: mongoose.Schema.ObjectId, ref: 'Users', },
-        comment: { type: String },
+        name: { type: String },
         profilePic: {
             public_id: {
                 type: String
@@ -12,20 +12,12 @@ const commentSchema = new mongoose.Schema({
                 type: String
             }
         },
-        name: { type: String },
-        createdAt: {
-            type: Date,
-            default: Date.now
-        }
+        comment: { type: String },
     }],
     post: {
         type: mongoose.Schema.ObjectId,
         ref: 'Posts',
         required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
     }
 })
 

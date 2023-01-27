@@ -16,22 +16,15 @@ exports.login = asyncHandler(async (req, res, next) => {
         return next(new errorResponse('Please provide an email and password', 400));
     }
 
-    let user = await User.findOne({ email: req.body.email }).select('+password')
+    const user = await User.findOne({ email: req.body.email }).select('+password')
 
     if (!user) {
-        user = await User.findOne({ unverifiedEmail: req.body.email }).select('+password')
-
-        if (user) {
-            return next(new errorResponse('Please verify your email', 401));
-        }
-        else {
-            return next(new errorResponse('Invalid Input', 400));
-        }
+        return next(new errorResponse('Invalid Input', 404));
     }
 
-    // if (!user.isVerified) {
-    //     return next(new errorResponse('Please verify your email', 401));
-    // }
+    if (!user.isVerified) {
+        return next(new errorResponse('Please verify your email', 401));
+    }
 
     const matchPassword = await user.matchPassword(req.body.password);
 
@@ -62,7 +55,7 @@ exports.register = asyncHandler(async (req, res, next) => {
         url: 'https://res.cloudinary.com/dbatsdukp/image/upload/v1673782839/profilePic/defaultMentor_aucyyg.jpg'
     }
 
-    const user = await User.create({ name, unverifiedEmail: email, password, role, profilePic });
+    const user = await User.create({ name, email, password, role, profilePic });
 
     const token = user.getVerificationToken();
 
@@ -74,7 +67,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 
     try {
         await sendEmail({
-            email: req.body.email,
+            email: user.email,
             subject: 'Email Verification',
             message
         })
@@ -91,21 +84,17 @@ exports.register = asyncHandler(async (req, res, next) => {
 exports.verifyEmail = asyncHandler(async (req, res, next) => {
     const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
-    const user = await User.findOne({ verificationToken: verificationToken, verificationTokenExpire: { $gt: Date.now() } }).select('+password');
-    console.log(user)
-
-
-    user.isVerified = true;
-    user.email = user.unverifiedEmail;
-    user.unverifiedEmail = undefined;
-    user.verificationToken = undefined;
-    user.verificationTokenExpire = undefined;
-
-    await user.save({ validateBeforeSave: false });
+    const user = await User.findOne({ verificationToken: verificationToken, verificationTokenExpire: { $gt: Date.now() } });
 
     if (!user) {
         return next(new errorResponse('Invalid Token', 400));
     }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpire = undefined;
+
+    await user.save({ validateBeforeSave: false });
 
     sendTokenResponse(user, 200, res);
 
@@ -133,7 +122,7 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 
     const matchPassword = await user.matchPassword(req.body.currentPassword);
     if (!matchPassword) {
-        return next(new errorResponse('Incorrect Password', 404));
+        return next(new errorResponse('Invalid Input', 404));
     }
 
     user.password = req.body.newPassword;
@@ -141,61 +130,58 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 
     sendTokenResponse(user, 200, res);
 })
+
 exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
     if (req.body.password || req.body.role || req.body.isVerified) {
         return next(new errorResponse('Not authorized to change password,role,isVerified', 404));
     }
-    const user1 = await User.findById(req.user._id);
-    if (user1.email === req.body.email || !req.body.email) {
-        const user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
-        res.status(200).json({ data: user })
-    }
     else {
-        req.body.unverifiedEmail = req.body.email;
-        const request = req.body;
-        delete request.email;
-        let user = await User.findByIdAndUpdate(req.user._id, request, { new: true, runValidators: true });
+        let user = await User.findByIdAndUpdate(req.user._id, req.body, { new: true, runValidators: true });
 
 
-        const token = user.getVerificationToken();
-        await user.save({ validateBeforeSave: false });
 
-        if (user) {
-            user = await User.findByIdAndUpdate(req.user._id, { isVerified: false }, { new: true, runValidators: true });
-        }
-
-        const verificationUrl = `http://127.0.0.1:5173/editemailverification/${token}`;
-
-        const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
-
-        try {
-            await sendEmail({
-                email: request.unverifiedEmail,
-                subject: 'Email Verification',
-                message
-            })
-            return res.status(200).json({ success: true, data: 'Email sent', user });
-        } catch (err) {
-            console.log(err);
-            user.verificationToken = undefined;
-            user.verificationTokenExpire = undefined;
+        if (req.body.email) {
+            const token = user.getVerificationToken();
             await user.save({ validateBeforeSave: false });
-            return next(new errorResponse('Email could not be sent', 500));
-        }
 
-        res.status(200).json({ status: true, data: user });
+            const verificationUrl = `${req.protocol}://${req.get(
+                'host',
+            )}/api/v1/user/verify/${token}`;
+
+            const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+            try {
+                await sendEmail({
+                    email: user.email,
+                    subject: 'Email Verification',
+                    message
+                })
+                return res.status(200).json({ success: true, data: 'Email sent', user });
+            } catch (err) {
+                console.log(err);
+                user.verificationToken = undefined;
+                user.verificationTokenExpire = undefined;
+                await user.save({ validateBeforeSave: false });
+                return next(new errorResponse('Email could not be sent', 500));
+            }
+
+            res.status(200).json({ status: true, data: user });
+        }
     }
+    res.status(200).json({ status: true, data: user });
 })
 
 exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
     const user = await User.findOne({ email: req.body.email });
 
     if (!user) {
-        return next(new errorResponse('User not found with given email', 404));
+        return next(new errorResponse('User.not found with given email', 404));
     }
 
     const resetToken = user.getResetPasswordToken();
-    const resetUrl = `http://127.0.0.1:5173/resetpassword/${resetToken}}`;
+    const resetUrl = `${req.protocol}://${req.get(
+        'host',
+    )}/api/v1/user/resetpassword/${resetToken}`;
 
     await user.save({ validateBeforeSave: false });
 
