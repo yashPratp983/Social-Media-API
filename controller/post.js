@@ -90,10 +90,10 @@ exports.comment = asyncHandler(async (req, res, next) => {
     const post = await Post.findById(req.params.postId);
 
     if (!post) {
-        next(new errorResponse(`No post found with id ${req.params.id}`, 401));
+        next(new errorResponse(`No post found with id ${req.params.postId}`, 401));
     }
     const comment = await Comment.findOne({ post: req.params.postId });
-    comment.content.push({ user: req.user._id, comment: req.body.comment });
+    comment.content.push({ user: req.user._id, comment: req.body.comment, profilePic: req.user.profilePic, name: req.user.name });
     comment.save();
 
     res.status(200).send({ success: true, data: comment });
@@ -192,6 +192,7 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
             photos: item.photos,
             videos: item.videos,
             user: item.user,
+            id: item._id,
             created_at: item.createdAt,
             comments: item.comments.map((item) => {
                 return item.content.map((item) => {
@@ -223,10 +224,11 @@ exports.getEveryPosts = asyncHandler(async (req, res, next) => {
             photos: item.photos,
             videos: item.videos,
             created_at: item.createdAt,
+            id: item._id,
             user: item.user,
             comments: item.comments.map((item) => {
                 return item.content.map((item) => {
-                    return item.comment;
+                    return item;
                 })
             }),
             likes: item.likes.map((item) => {
