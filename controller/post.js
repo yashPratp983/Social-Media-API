@@ -67,7 +67,7 @@ exports.like = asyncHandler(async (req, res, next) => {
     }
     details.save();
 
-    res.status(200).send({ success: true, data: { like: details.likes.length } });
+    res.status(200).send({ success: true, data: { like: details.likes.length, likes: details.likes } });
 })
 
 exports.unlike = asyncHandler(async (req, res, next) => {
@@ -82,7 +82,7 @@ exports.unlike = asyncHandler(async (req, res, next) => {
     }
     details.save();
 
-    res.status(200).send({ success: true, data: { like: details.likes.length } });
+    res.status(200).send({ success: true, data: { like: details.likes.length, likes: details.likes } });
 })
 
 exports.comment = asyncHandler(async (req, res, next) => {
@@ -229,6 +229,9 @@ exports.getEveryPosts = asyncHandler(async (req, res, next) => {
             }),
             likes: item.likes.map((item) => {
                 return item.likes.length;
+            }),
+            likedUser: item.likes.map((item) => {
+                return item.likes;
             })
         }
     })
