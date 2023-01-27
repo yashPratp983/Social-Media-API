@@ -10,9 +10,12 @@ const cloudinary = require('../utils/cloudinary');
 
 exports.createNewPost = asyncHandler(async (req, res, next) => {
     req.body.user = req.user._id;
-    const newPost = await Post.create(req.body);
+
+    let newPost = await Post.create(req.body);
     const postDetails = await Likes.create({ post: newPost._id })
     const comments = await Comment.create({ post: newPost._id })
+    newPost.user = req.user._id;
+    newPost = await newPost.save();
 
     res.status(200).send({ success: true, data: newPost })
 })
@@ -67,7 +70,9 @@ exports.like = asyncHandler(async (req, res, next) => {
     }
     details.save();
 
+
     res.status(200).send({ success: true, data: { like: details.likes.length, likes: details.likes } });
+
 })
 
 exports.unlike = asyncHandler(async (req, res, next) => {
@@ -82,24 +87,32 @@ exports.unlike = asyncHandler(async (req, res, next) => {
     }
     details.save();
 
+
     res.status(200).send({ success: true, data: { like: details.likes.length, likes: details.likes } });
+
 })
 
 exports.comment = asyncHandler(async (req, res, next) => {
     const post = await Post.findById(req.params.postId);
 
     if (!post) {
-        next(new errorResponse(`No post found with id ${req.params.id}`, 401));
+
+        next(new errorResponse(`No post found with id ${req.params.postId}`, 401));
     }
     const comment = await Comment.findOne({ post: req.params.postId });
-    comment.content.push({ user: req.user._id, comment: req.body.comment, name: req.user.name, profilePic: req.user.profilePic });
+    comment.content.push({ user: req.user._id, comment: req.body.comment, profilePic: req.user.profilePic, name: req.user.name });
+
     comment.save();
 
     res.status(200).send({ success: true, data: comment });
 })
 
+
+
+
 exports.editComment = asyncHandler(async (req, res, next) => {
     const comment = await Comment.findOne({ post: req.params.postId });
+
 
     if (!comment) {
         next(new errorResponse(`No post found with id ${req.params.id}`, 401));
@@ -189,6 +202,9 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
             photos: item.photos,
             videos: item.videos,
             user: item.user,
+
+            id: item._id,
+
             created_at: item.createdAt,
             comments: item.comments.map((item) => {
                 return item.content.map((item) => {
@@ -220,8 +236,10 @@ exports.getEveryPosts = asyncHandler(async (req, res, next) => {
             photos: item.photos,
             videos: item.videos,
             created_at: item.createdAt,
-            user: item.user,
+
             id: item._id,
+            user: item.user,
+
             comments: item.comments.map((item) => {
                 return item.content.map((item) => {
                     return item;
@@ -301,6 +319,7 @@ exports.uploadImages = asyncHandler(async (req, res, next) => {
             next(new errorResponse(`Please upload an image file`, 401));
         }
 
+
         if (file.size > process.env.MAX_FILE_UPLOAD) {
             next(new errorResponse(`Please upload an image less than ${process.env.MAX_FILE_UPLOAD}`, 401));
         }
@@ -378,6 +397,7 @@ exports.uploadVideo = asyncHandler(async (req, res, next) => {
             } catch (err) {
                 console.log(err, 6465);
             }
+
         }
 
         post.save();
@@ -390,9 +410,10 @@ exports.uploadVideo = asyncHandler(async (req, res, next) => {
             next(new errorResponse(`Please upload a video file`, 401));
         }
 
-        if (file.size > '1000000000000000') {
+        if (file.size > '100000000000000000') {
             next(new errorResponse(`Please upload a video less than 1000000000000000`, 401));
         }
+
 
         // file.name=`${Date.now()}video_${post._id}_${i}${path.parse(file.name).ext}`;
         // file.mv(`./public/videos/${file.name}`,async err=>{
