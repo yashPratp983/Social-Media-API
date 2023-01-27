@@ -4,6 +4,19 @@ const commentSchema = new mongoose.Schema({
     content: [{
         user: { type: mongoose.Schema.ObjectId, ref: 'Users', },
         comment: { type: String },
+        profilePic: {
+            public_id: {
+                type: String
+            },
+            url: {
+                type: String
+            }
+        },
+        name: { type: String },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
     }],
     post: {
         type: mongoose.Schema.ObjectId,
