@@ -2,6 +2,7 @@ const User = require('../modals/users');
 const ErrorHandler = require('../utils/ErrorHandler');
 const asyncHandler = require('../middleware/asyncHandler')
 const cloudinary = require('../utils/cloudinary');
+const Notifications = require('../modals/Notificaton');
 
 exports.follow = asyncHandler(async (req, res, next) => {
     const user1 = await User.findOne({ _id: req.params.id });
@@ -19,6 +20,33 @@ exports.follow = asyncHandler(async (req, res, next) => {
     req.user.save();
 
     res.status(202).send({ success: true, data: req.user });
+})
+
+exports.getAllUsers = asyncHandler(async (req, res, next) => {
+    let users = await User.find();
+    let users1 = users.map(user => {
+        return {
+            _id: user._id,
+            name: user.name,
+            profilePic: user.profilePic,
+            followers: user.followers.length,
+            following: user.following.length,
+            bio: user.bio
+        }
+    })
+
+    res.status(200).send({ success: true, data: users1 });
+})
+
+
+exports.getAUser = asyncHandler(async (req, res, next) => {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+        next(`User not found with id ${req.params.id}`, 401);
+    }
+
+    res.status(200).send({ success: true, data: user });
 })
 
 exports.unfollow = asyncHandler(async (req, res, next) => {
@@ -126,3 +154,5 @@ exports.addBio = asyncHandler(async (req, res, next) => {
     user = await User.findById(req.user._id);
     res.status(200).send({ success: true, data: user });
 })
+
+
