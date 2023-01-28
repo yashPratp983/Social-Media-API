@@ -176,10 +176,11 @@ exports.getPostDetails = asyncHandler(async (req, res, next) => {
 })
 
 exports.getAllPosts = asyncHandler(async (req, res, next) => {
-    let posts = await Post.find({ user: req.user.id }).populate([
+    console.log(req.params.id)
+    let posts = await Post.find({ user: req.params.id }).populate([
         { path: 'comments', select: 'content' },
-        { path: 'likes', select: 'likes' }
-
+        { path: 'likes', select: 'likes' },
+        { path: 'user', select: 'name profilePic' }
     ]);
 
     const data = posts.map((item) => {
@@ -188,15 +189,19 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
             description: item.description,
             photos: item.photos,
             videos: item.videos,
-            user: item.user,
             created_at: item.createdAt,
+            user: item.user,
+            id: item._id,
             comments: item.comments.map((item) => {
                 return item.content.map((item) => {
-                    return item.comment;
+                    return item;
                 })
             }),
             likes: item.likes.map((item) => {
                 return item.likes.length;
+            }),
+            likedUser: item.likes.map((item) => {
+                return item.likes;
             })
         }
     })
@@ -212,6 +217,8 @@ exports.getEveryPosts = asyncHandler(async (req, res, next) => {
         { path: 'likes', select: 'likes' },
         { path: 'user', select: 'name profilePic' }
     ]);
+
+
 
     const data = posts.map((item) => {
         return {

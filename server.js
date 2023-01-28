@@ -16,6 +16,7 @@ const xss = require('xss-clean');
 const cors = require('cors');
 const hpp = require('hpp');
 const fileUpload = require('express-fileupload');
+const notification = require('./routes/notification')
 
 mongoose.set('strictQuery', true);
 dotenv.config({ path: './config/config.env' })
@@ -37,6 +38,7 @@ app.use('/api/v1/user', user);
 app.use('/api/v1/posts', post);
 app.use('/api/v1/all_posts', allPosts);
 app.use('/api/v1/adminusers', users);
+app.use('/api/v1/notifications', notification);
 app.use(errorResponse)
 connectDB();
 
