@@ -7,6 +7,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cloudinary = require('../utils/cloudinary');
+const User = require('../modals/users')
 
 exports.createNewPost = asyncHandler(async (req, res, next) => {
     req.body.user = req.user._id;
@@ -189,43 +190,86 @@ exports.getPostDetails = asyncHandler(async (req, res, next) => {
 })
 
 exports.getAllPosts = asyncHandler(async (req, res, next) => {
-    console.log(req.params.id)
-    let posts = await Post.find({ user: req.params.id }).populate([
-        { path: 'comments', select: 'content' },
-        { path: 'likes', select: 'likes' },
-        { path: 'user', select: 'name profilePic' }
-    ]);
+    const user = await User.findById(req.user._id);
+    if (req.user._id == req.params.id) {
+        let posts = await Post.find({ user: req.params.id }).populate([
+            { path: 'comments', select: 'content' },
+            { path: 'likes', select: 'likes' },
+            { path: 'user', select: 'name profilePic' }
+        ]);
 
-    const data = posts.map((item) => {
-        return {
-            title: item.title,
-            description: item.description,
-            photos: item.photos,
-            videos: item.videos,
+        const data = posts.map((item) => {
+            return {
+                title: item.title,
+                description: item.description,
+                photos: item.photos,
+                videos: item.videos,
 
-            created_at: item.createdAt,
-            user: item.user,
-            id: item._id,
-            comments: item.comments.map((item) => {
-                return item.content.map((item) => {
-                    return item;
+                created_at: item.createdAt,
+                user: item.user,
+                id: item._id,
+                comments: item.comments.map((item) => {
+                    return item.content.map((item) => {
+                        return item;
+                    })
+                }),
+                likes: item.likes.map((item) => {
+                    return item.likes.length;
+                }),
+                likedUser: item.likes.map((item) => {
+                    return item.likes;
                 })
-            }),
-            likes: item.likes.map((item) => {
-                return item.likes.length;
-            }),
-            likedUser: item.likes.map((item) => {
-                return item.likes;
-            })
+            }
+        })
+
+
+        res.status(200).send({ success: true, data });
+    }
+    else if (!(user.following)) {
+        return res.status(400).send({ success: false, data: "not allowed to see user's post" });
+    }
+    else {
+        if (!user.following.includes(req.params.id)) {
+            return res.status(400).send({ success: false, data: "not allowed to see user post" });
         }
-    })
+        let posts = await Post.find({ user: req.params.id }).populate([
+            { path: 'comments', select: 'content' },
+            { path: 'likes', select: 'likes' },
+            { path: 'user', select: 'name profilePic' }
+        ]);
+
+        const data = posts.map((item) => {
+            return {
+                title: item.title,
+                description: item.description,
+                photos: item.photos,
+                videos: item.videos,
+
+                created_at: item.createdAt,
+                user: item.user,
+                id: item._id,
+                comments: item.comments.map((item) => {
+                    return item.content.map((item) => {
+                        return item;
+                    })
+                }),
+                likes: item.likes.map((item) => {
+                    return item.likes.length;
+                }),
+                likedUser: item.likes.map((item) => {
+                    return item.likes;
+                })
+            }
+        })
 
 
-    res.status(200).send({ success: true, data });
+        res.status(200).send({ success: true, data });
+    }
 
 })
 
 exports.getEveryPosts = asyncHandler(async (req, res, next) => {
+    const user = await User.findById(req.user._id);
     let posts = await Post.find().populate([
         { path: 'comments', select: 'content' },
         { path: 'likes', select: 'likes' },
@@ -235,29 +279,35 @@ exports.getEveryPosts = asyncHandler(async (req, res, next) => {
 
 
     const data = posts.map((item) => {
-        return {
-            title: item.title,
-            description: item.description,
-            photos: item.photos,
-            videos: item.videos,
-            created_at: item.createdAt,
+        if ((user.following.includes(item.user._id)) || (req.user._id == item.user._id)) {
+            return {
+                title: item.title,
+                description: item.description,
+                photos: item.photos,
+                videos: item.videos,
+                created_at: item.createdAt,
 
-            id: item._id,
-            user: item.user,
+                id: item._id,
+                user: item.user,
 
-            comments: item.comments.map((item) => {
-                return item.content.map((item) => {
-                    return item;
+                comments: item.comments.map((item) => {
+                    return item.content.map((item) => {
+                        return item;
+                    })
+                }),
+                likes: item.likes.map((item) => {
+                    return item.likes.length;
+                }),
+                likedUser: item.likes.map((item) => {
+                    return item.likes;
                 })
-            }),
-            likes: item.likes.map((item) => {
-                return item.likes.length;
-            }),
-            likedUser: item.likes.map((item) => {
-                return item.likes;
-            })
+            }
         }
     })
+
+    if (!data[0]) {
+        return res.status(200).send({ success: true, data: [] });
+    }
 
 
     res.status(200).send({ success: true, data });
