@@ -6,6 +6,6 @@ const { createNotification, getNotifications, deleteNotification, acceptNotifica
 
 router.route('/').post(protect, createNotification).get(protect, getNotifications);
 router.route('/accept/:id').put(protect, acceptNotification);
-router.route('reject/:id').put(protect, deleteNotification);
+router.route('/reject/:id').put(protect, deleteNotification);
 
 module.exports = router;
