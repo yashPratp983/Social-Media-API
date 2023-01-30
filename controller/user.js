@@ -1,5 +1,5 @@
 const User = require('../modals/users');
-const ErrorHandler = require('../utils/ErrorHandler');
+const errorResponse = require('../utils/ErrorHandler');
 const asyncHandler = require('../middleware/asyncHandler')
 const cloudinary = require('../utils/cloudinary');
 const Notifications = require('../modals/Notificaton');
@@ -46,14 +46,24 @@ exports.getAUser = asyncHandler(async (req, res, next) => {
         next(`User not found with id ${req.params.id}`, 401);
     }
 
-    res.status(200).send({ success: true, data: user });
+    const data = {
+        _id: user._id,
+        name: user.name,
+        profilePic: user.profilePic,
+        followers: user.followers.length,
+        following: user.following.length,
+        bio: user.bio
+
+    }
+
+    res.status(200).send({ success: true, data: data });
 })
 
 exports.unfollow = asyncHandler(async (req, res, next) => {
     const user1 = await User.findOne({ _id: req.params.id });
 
     if (!user1) {
-        next(`User not found with id ${req.params.id}`, 401);
+        next(new errorResponse(`User not found with id ${req.params._id}`, 401));
     }
     if (user1.followers.includes(req.user._id)) {
         user1.followers.remove(req.user._id);
@@ -63,6 +73,24 @@ exports.unfollow = asyncHandler(async (req, res, next) => {
     }
     user1.save();
     req.user.save();
+
+    res.status(202).send({ success: true, data: req.user });
+})
+
+exports.block = asyncHandler(async (req, res, next) => {
+    const user1 = await User.findOne({ _id: req.params.id });
+
+    if (!user1) {
+        next(new errorResponse(`User not found with id ${req.params._id}`, 401));
+    }
+    if (user1.following.includes(req.user._id)) {
+        user1.following.remove(req.user._id);
+    }
+    if (req.user.followers.includes(user1._id)) {
+        req.user.followers.remove(user1._id);
+    }
+    await user1.save();
+    await req.user.save();
 
     res.status(202).send({ success: true, data: req.user });
 })
@@ -77,7 +105,7 @@ exports.getProfile = asyncHandler(async (req, res, next) => {
 exports.uploadProfilePic = asyncHandler(async (req, res, next) => {
     const user = await User.findById(req.user._id);
     if (!user) {
-        next(`User not found with id ${req.user._id}`, 401);
+        next(new errorResponse(`User not found with id ${req.params._id}`, 401));
     }
 
     const file = req.files.files;
@@ -118,7 +146,7 @@ exports.uploadProfilePic = asyncHandler(async (req, res, next) => {
 exports.deleteProfilePic = asyncHandler(async (req, res, next) => {
     let user = await User.findById(req.user._id);
     if (!user) {
-        next(`User not found with id ${req.user._id}`, 401);
+        next(new errorResponse(`User not found with id ${req.params._id}`, 401));
     }
 
     // file.name=`${Date.now()}photo_${post._id}_${i}${path.parse(file.name).ext}`;
@@ -146,7 +174,7 @@ exports.deleteProfilePic = asyncHandler(async (req, res, next) => {
 exports.addBio = asyncHandler(async (req, res, next) => {
     let user = await User.findById(req.user._id);
     if (!user) {
-        next(`User not found with id ${req.user._id}`, 401);
+        next(new errorResponse(`User not found with given id`, 401));
     }
 
     user.bio = req.body.bio;
@@ -155,4 +183,21 @@ exports.addBio = asyncHandler(async (req, res, next) => {
     res.status(200).send({ success: true, data: user });
 })
 
+exports.getFollows = asyncHandler(async (req, res, next) => {
+    const user = await User.findById(req.params.id);
+    console.log(user.followers.includes(req.params.id))
+    if (!user) {
+        next(new errorResponse(`User not found with given id`, 401));
+    }
+
+    if (!(user.followers.includes(req.user._id)) && req.user._id != req.params.id) {
+        next(new errorResponse(`Not authorised for the information`, 401));
+    }
+
+    const followers = await User.find({ _id: { $in: user.followers } });
+
+    const following = await User.find({ _id: { $in: user.following } });
+
+    res.status(200).send({ success: true, data: { followers: followers, following: following } });
+})
 
