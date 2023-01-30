@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const { login, register, updatePassword, updateUserCrediantials, forgotPasswordToken, resetPassword, verifyEmail, logout } = require('../controller/auth');
-const { follow, unfollow, getProfile, uploadProfilePic, deleteProfilePic, addBio, getAUser, getAllUsers } = require('../controller/user');
+const { follow, unfollow, getProfile, uploadProfilePic, deleteProfilePic, addBio, getAUser, getAllUsers, getFollows, block } = require('../controller/user');
 const { protect, authorisation } = require('../middleware/auth');
 
 
@@ -22,5 +22,7 @@ router.route('/deleteProfilePic').delete(protect, deleteProfilePic);
 router.route('/addBio').put(protect, addBio);
 router.route('/getProfile/:id').get(protect, getAUser);
 router.route('/getAllUsers').get(protect, getAllUsers);
+router.route('/getFollows/:id').get(protect, getFollows);
+router.route('/block/:id').put(protect, block);
 
 module.exports = router;
