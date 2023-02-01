@@ -55,7 +55,7 @@ exports.register = asyncHandler(async (req, res, next) => {
         url: 'https://res.cloudinary.com/dbatsdukp/image/upload/v1673782839/profilePic/defaultMentor_aucyyg.jpg'
     }
 
-    const user = await User.create({ name, email, password, role, profilePic });
+    const user = await User.create({ name, email, password, role, profilePic, followers: [], following: [] });
 
     const token = user.getVerificationToken();
 
