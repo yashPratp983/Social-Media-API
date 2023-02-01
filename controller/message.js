@@ -12,10 +12,14 @@ exports.getMessage = asyncHandler(async (req, res, next) => {
 
     const messageSent = await message.find({ sender: req.user.id, receiver: req.params.id });
     const messageReceived = await message.find({ sender: req.params.id, receiver: req.user.id });
+    const allmessages = messageSent.concat(messageReceived);
+    allmessages.sort((a, b) => {
+        return a.date - b.date;
+    });
 
     res.status(200).json({
         success: true,
-        data: { messageSent, messageReceived }
+        data: allmessages
     });
 });
 
