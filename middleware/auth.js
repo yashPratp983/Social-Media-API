@@ -19,8 +19,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findOne({ id: decoded.id, password: decoded.password }).select('+password')
-        console.log(decoded, "blah1");
-        console.log(decoded.password, "blah2")
+
 
         if (user) {
             req.user = user;

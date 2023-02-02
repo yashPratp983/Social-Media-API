@@ -1,7 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/connectDB');
-const { Server } = require('http');
+
 const mongoose = require('mongoose')
 const morgan = require('morgan');
 const user = require('./routes/user');
@@ -18,11 +18,19 @@ const cors = require('cors');
 const hpp = require('hpp');
 const fileUpload = require('express-fileupload');
 const notification = require('./routes/notification')
+const { Server } = require("socket.io")
 
 mongoose.set('strictQuery', true);
 dotenv.config({ path: './config/config.env' })
 
 const app = express();
+const server = require('http').createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 app.use(helmet());
 app.use(xss());
@@ -46,9 +54,46 @@ connectDB();
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+let onlineUsers = [];
+io.on('connection', (socket) => {
+    console.log('New user connected');
+
+    socket.on("add-user", (userId) => {
+        onlineUsers = onlineUsers.filter(user => user.userId !== userId)
+        onlineUsers.push({ userId: userId, socketId: socket.id })
+        console.log(onlineUsers, "onlineUsers");
+        io.emit("get-users", onlineUsers)
+    });
+
+    socket.on("send-message", ({ senderId, receiverId, text }) => {
+        const user = onlineUsers.find(user => user.userId == receiverId)
+        console.log(user, "usertosendmessage")
+        console.log({ senderId, receiverId, text }, "message");
+        if (user) {
+            console.log(user, "usertosendmessage")
+            io.to(user.socketId).emit("get-message", {
+                senderId,
+                text
+            })
+        }
+    })
+
+
+    // socket.on('')
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+        onlineUsers = onlineUsers.filter(user => user.socketId !== socket.id)
+        io.emit("get-users", onlineUsers)
+        console.log(onlineUsers, "onlineUsers");
+    });
+});
+
+
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 })
+
 
 // process.on('unhandledRejection', (err, promise) => {
 //     console.log(`Error: ${err.message}`);
