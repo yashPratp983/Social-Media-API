@@ -1,4 +1,4 @@
-# DevCamper API
+# Social Media API
 
 > Backend API for a Social Media application.
 

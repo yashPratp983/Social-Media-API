@@ -6,6 +6,7 @@ const mongoose = require('mongoose')
 const morgan = require('morgan');
 const user = require('./routes/user');
 const users = require('./routes/users');
+const messages = require('./routes/message')
 const errorResponse = require('./middleware/errorHandler')
 const allPosts = require('./routes/allposts')
 const cookieParser = require('cookie-parser')
@@ -47,6 +48,7 @@ app.use('/api/v1/posts', post);
 app.use('/api/v1/all_posts', allPosts);
 app.use('/api/v1/adminusers', users);
 app.use('/api/v1/notifications', notification);
+app.use('/api/v1/messages', messages);
 app.use(errorResponse)
 connectDB();
 
