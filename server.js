@@ -62,15 +62,29 @@ io.on('connection', (socket) => {
         onlineUsers = onlineUsers.filter(user => user.userId !== userId)
         onlineUsers.push({ userId: userId, socketId: socket.id })
         console.log(onlineUsers, "onlineUsers");
-        socket.emit("get-users", onlineUsers)
+        io.emit("get-users", onlineUsers)
     });
+
+    socket.on("send-message", ({ senderId, receiverId, text }) => {
+        const user = onlineUsers.find(user => user.userId == receiverId)
+        console.log(user, "usertosendmessage")
+        console.log({ senderId, receiverId, text }, "message");
+        if (user) {
+            console.log(user, "usertosendmessage")
+            io.to(user.socketId).emit("get-message", {
+                senderId,
+                text
+            })
+        }
+    })
+
 
     // socket.on('')
 
     socket.on('disconnect', () => {
         console.log('User disconnected');
         onlineUsers = onlineUsers.filter(user => user.socketId !== socket.id)
-        socket.emit("get-users", onlineUsers)
+        io.emit("get-users", onlineUsers)
         console.log(onlineUsers, "onlineUsers");
     });
 });
