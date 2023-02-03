@@ -201,3 +201,34 @@ exports.getFollows = asyncHandler(async (req, res, next) => {
     res.status(200).send({ success: true, data: { followers: followers, following: following } });
 })
 
+exports.blockUser = asyncHandler(async (req, res, next) => {
+    const user1 = await User.findById(req.params.id);
+    const user2 = await User.findById(req.user._id);
+    if (!user1) {
+        next(new errorResponse(`User not found with given id`, 401));
+    }
+    if (user2.blocklist.includes(req.user._id)) {
+        next(new errorResponse(`User already blocked`, 401));
+    }
+    user2.blocklist.push(req.params.id);
+    await user1.save();
+    await user2.save();
+    res.status(200).send({ success: true, data: user2 });
+})
+
+exports.unblockUser = asyncHandler(async (req, res, next) => {
+    const user1 = await User.findById(req.params.id);
+    const user2 = await User.findById(req.user._id);
+    console.log(user2)
+    if (!user1) {
+        next(new errorResponse(`User not found with given id`, 401));
+    }
+    if (!user2.blocklist.includes(req.params.id)) {
+        next(new errorResponse(`User not blocked`, 401));
+    }
+    user2.blocklist.remove(req.params.id);
+    await user1.save();
+    await user2.save();
+    res.status(200).send({ success: true, data: user2 });
+})
+
