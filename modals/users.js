@@ -56,6 +56,12 @@ const userSchema = new mongoose.Schema({
     followers: [{
         type: mongoose.Schema.ObjectId,
     }],
+    blocklist: [
+        {
+            type: mongoose.Schema.ObjectId
+        }
+    ]
+    ,
     isVerified: {
         type: Boolean,
         default: false

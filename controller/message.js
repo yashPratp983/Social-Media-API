@@ -29,6 +29,15 @@ exports.postMessage = asyncHandler(async (req, res, next) => {
         return next(new errorResponse(`User not found with id of ${req.params.id}`, 404));
     }
 
+    if (user.blocklist.includes(req.user.id)) {
+        return next(new errorResponse(`User has blocked you`, 401));
+    }
+
+    const user2 = await User.findById(req.user._id);
+    if (user2.blocklist.includes(req.params.id)) {
+        return next(new errorResponse(`You have blocked this user`, 401));
+    }
+
     const mess = await message.create({
         message: req.body.message,
         sender: req.user.id,
