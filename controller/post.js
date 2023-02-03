@@ -305,12 +305,16 @@ exports.getEveryPosts = asyncHandler(async (req, res, next) => {
         }
     })
 
-    if (!data[0]) {
-        return res.status(200).send({ success: true, data: [] });
-    }
 
 
-    res.status(200).send({ success: true, data });
+    const filteredData = data.filter((item) => {
+        return item != undefined;
+    })
+
+
+
+
+    res.status(200).send({ success: true, data: filteredData });
 
 })
 
