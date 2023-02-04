@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const cloudinary = require('../utils/cloudinary');
 const User = require('../modals/users')
+const messageNotification = require('../modals/messageNotification');
 
 exports.createNewPost = asyncHandler(async (req, res, next) => {
     req.body.user = req.user._id;
