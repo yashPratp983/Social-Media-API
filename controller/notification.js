@@ -21,7 +21,9 @@ exports.createNotification = asyncHandler(async (req, res, next) => {
         })
     }
     else {
-        notification.status.push(req.body.user);
+        if (!notification.status.includes(req.body.user)) {
+            notification.status.push(req.body.user);
+        }
         await notification.save();
 
     }
@@ -35,7 +37,9 @@ exports.createNotification = asyncHandler(async (req, res, next) => {
 
     }
     else {
-        notification2.request.push(req.user._id);
+        if (!notification2.request.includes(req.user._id)) {
+            notification2.request.push(req.user._id);
+        }
         await notification2.save();
     }
     res.status(200).send({ success: true, data: { notification, notification2 } });
@@ -107,12 +111,40 @@ exports.acceptNotification = asyncHandler(async (req, res, next) => {
     const user1 = await User.findById(req.user._id);
     const user2 = await User.findById(req.params.id);
 
-    user1.followers.push(req.params.id);
-    user2.following.push(req.user._id);
+    if (!user1.followers.includes(req.params.id)) {
+        user1.followers.push(req.params.id);
+    }
+    if (!user2.following.includes(req.user._id)) {
+        user2.following.push(req.user._id);
+    }
     await user1.save();
     await user2.save();
 
 
+
+    res.status(200).send({ success: true, data: { notification, notification2 } });
+
+})
+
+exports.deleteNotification2 = asyncHandler(async (req, res, next) => {
+    const notification = await Notifications.findOne({
+        user: req.params.id,
+    })
+    if (!notification) {
+        next(new errorResponse(`Notification not found with id ${req.user._id}`, 401));
+    }
+    notification.status.remove(req.params.id);
+    await notification.save();
+
+    const notification2 = await Notifications.findOne({
+        user: req.user._id,
+    })
+    if (!notification2) {
+        next(new errorResponse(`Notification not found with id ${req.params.id}`, 401));
+    }
+
+    notification2.request.remove(req.user._id);
+    await notification2.save();
 
     res.status(200).send({ success: true, data: { notification, notification2 } });
 
