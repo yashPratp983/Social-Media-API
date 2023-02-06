@@ -1,7 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/connectDB');
-
 const mongoose = require('mongoose')
 const morgan = require('morgan');
 const user = require('./routes/user');
@@ -18,6 +17,7 @@ const cors = require('cors');
 const hpp = require('hpp');
 const fileUpload = require('express-fileupload');
 const notification = require('./routes/notification')
+const messageNotification = require('./routes/messageNotification')
 const { Server } = require("socket.io")
 
 mongoose.set('strictQuery', true);
@@ -49,6 +49,7 @@ app.use('/api/v1/all_posts', allPosts);
 app.use('/api/v1/adminusers', users);
 app.use('/api/v1/notifications', notification);
 app.use('/api/v1/messages', messages);
+app.use('/api/v1/messageNotification', messageNotification)
 app.use(errorResponse)
 connectDB();
 

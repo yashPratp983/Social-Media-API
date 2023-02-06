@@ -3,6 +3,7 @@ const Post = require('../modals/posts');
 const message = require('../modals/message');
 const errorResponse = require('../utils/ErrorHandler')
 const User = require('../modals/users');
+const messageNotification = require('../modals/messageNotification');
 
 exports.getMessage = asyncHandler(async (req, res, next) => {
     const user = await User.findById(req.params.id);
@@ -38,10 +39,19 @@ exports.postMessage = asyncHandler(async (req, res, next) => {
         return next(new errorResponse(`You have blocked this user`, 401));
     }
 
+
+
     const mess = await message.create({
         message: req.body.message,
         sender: req.user.id,
         receiver: req.params.id
+    });
+
+    const messageNotification1 = await messageNotification.create({
+        message: req.body.message,
+        sender: req.user.id,
+        receiver: req.params.id,
+        messageId: mess._id
     });
 
     res.status(200).json({
