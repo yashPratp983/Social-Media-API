@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
         console.log({ senderId, receiverId, text }, "message");
         if (user) {
             console.log(user, "usertosendmessage")
-            socket.to(user.socketId).emit("get-message", {
+            io.emit("get-message", {
                 senderId,
                 text
             })
