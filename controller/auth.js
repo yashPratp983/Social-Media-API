@@ -94,7 +94,7 @@ exports.verifyEmail = asyncHandler(async (req, res, next) => {
     user.verificationToken = undefined;
     user.verificationTokenExpire = undefined;
 
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     sendTokenResponse(user, 200, res);
 
@@ -165,10 +165,10 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
                 return next(new errorResponse('Email could not be sent', 500));
             }
 
-            res.status(200).json({ status: true, data: user });
+
         }
+        res.status(200).json({ status: true, data: user });
     }
-    res.status(200).json({ status: true, data: user });
 })
 
 exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {

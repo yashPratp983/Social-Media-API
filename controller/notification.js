@@ -102,23 +102,24 @@ exports.acceptNotification = asyncHandler(async (req, res, next) => {
     if (!notification2) {
         next(new errorResponse(`Notification not found with id ${req.params.id}`, 401));
     }
+    if (notification.request.includes(req.params.id) && notification2.status.includes(req.user._id)) {
+        notification.request.remove(req.params.id);
+        notification2.status.remove(req.user._id);
+        await notification.save();
+        await notification2.save();
 
-    notification.request.remove(req.params.id);
-    notification2.status.remove(req.user._id);
-    await notification.save();
-    await notification2.save();
+        const user1 = await User.findById(req.user._id);
+        const user2 = await User.findById(req.params.id);
 
-    const user1 = await User.findById(req.user._id);
-    const user2 = await User.findById(req.params.id);
-
-    if (!user1.followers.includes(req.params.id)) {
-        user1.followers.push(req.params.id);
+        if (!user1.followers.includes(req.params.id)) {
+            user1.followers.push(req.params.id);
+        }
+        if (!user2.following.includes(req.user._id)) {
+            user2.following.push(req.user._id);
+        }
+        await user1.save();
+        await user2.save();
     }
-    if (!user2.following.includes(req.user._id)) {
-        user2.following.push(req.user._id);
-    }
-    await user1.save();
-    await user2.save();
 
 
 
@@ -133,7 +134,7 @@ exports.deleteNotification2 = asyncHandler(async (req, res, next) => {
     if (!notification) {
         next(new errorResponse(`Notification not found with id ${req.user._id}`, 401));
     }
-    notification.status.remove(req.params.id);
+    notification.request.remove(req.user._id);
     await notification.save();
 
     const notification2 = await Notifications.findOne({
@@ -143,7 +144,7 @@ exports.deleteNotification2 = asyncHandler(async (req, res, next) => {
         next(new errorResponse(`Notification not found with id ${req.params.id}`, 401));
     }
 
-    notification2.request.remove(req.user._id);
+    notification2.status.remove(req.params.id);
     await notification2.save();
 
     res.status(200).send({ success: true, data: { notification, notification2 } });
