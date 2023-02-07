@@ -84,7 +84,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 exports.verifyEmail = asyncHandler(async (req, res, next) => {
     const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
-    const user = await User.findOne({ verificationToken: verificationToken, verificationTokenExpire: { $gt: Date.now() } });
+    const user = await User.findOne({ verificationToken: verificationToken, verificationTokenExpire: { $gt: Date.now() } }).select('+password');
 
     if (!user) {
         return next(new errorResponse('Invalid Token', 400));
@@ -95,7 +95,7 @@ exports.verifyEmail = asyncHandler(async (req, res, next) => {
     user.verificationTokenExpire = undefined;
 
     await user.save({ validateBeforeSave: false });
-
+    console.log(user)
     sendTokenResponse(user, 200, res);
 
 })
@@ -165,10 +165,10 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
                 return next(new errorResponse('Email could not be sent', 500));
             }
 
-            res.status(200).json({ status: true, data: user });
+
         }
+        res.status(200).json({ status: true, data: user });
     }
-    res.status(200).json({ status: true, data: user });
 })
 
 exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
