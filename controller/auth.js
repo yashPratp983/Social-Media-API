@@ -144,9 +144,7 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
             const token = user.getVerificationToken();
             await user.save({ validateBeforeSave: false });
 
-            const verificationUrl = `${req.protocol}://${req.get(
-                'host',
-            )}/api/v1/user/verify/${token}`;
+            const verificationUrl = `https://musical-monstera-20ce50.netlify.app/emailverification/${token}`;
 
             const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
 
@@ -179,16 +177,14 @@ exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
     }
 
     const resetToken = user.getResetPasswordToken();
-    const resetUrl = `${req.protocol}://${req.get(
-        'host',
-    )}/api/v1/user/resetpassword/${resetToken}`;
+    const resetUrl = `https://musical-monstera-20ce50.netlify.app/resetpassword/${resetToken}`;
 
     await user.save({ validateBeforeSave: false });
 
     const options = {
         email: req.body.email,
         subject: 'Reset Password',
-        message: `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`
+        message: `You are receiving this email because you (or someone else) has requested the reset of a password. Please change your password on folloeing url: \n\n ${resetUrl}`
     }
 
     try {
