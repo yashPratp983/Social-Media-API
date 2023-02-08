@@ -1,6 +1,6 @@
 const User = require('../modals/users');
 const asyncHandler = require('../middleware/asyncHandler');
-const ErrorResponse = require('../utils/errorHandler');
+const ErrorResponse = require('../utils/ErrorHandler');
 const emailValidator = require('email-validator');
 
 exports.getUsers=asyncHandler(async(req,res,next)=>{
