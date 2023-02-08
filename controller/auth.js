@@ -61,7 +61,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 
     await user.save({ validateBeforeSave: false });
 
-    const verificationUrl = `http://127.0.0.1:5173/emailverification/${token}`;
+    const verificationUrl = `https://musical-monstera-20ce50.netlify.app/emailverification/${token}`;
 
     const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
 
