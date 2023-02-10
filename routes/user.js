@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { login, register, updatePassword, updateUserCrediantials, forgotPasswordToken, resetPassword, verifyEmail, logout } = require('../controller/auth');
+const { login, register, updatePassword, updateUserCrediantials, forgotPasswordToken, resetPassword, verifyEmail, logout, resendEmailVerification } = require('../controller/auth');
 const { follow, unfollow, getProfile, uploadProfilePic, deleteProfilePic, addBio, getAUser, getAllUsers, getFollows, block, blockUser, unblockUser } = require('../controller/user');
 const { protect, authorisation } = require('../middleware/auth');
 
@@ -16,6 +16,7 @@ router.route('/unfollow/:id').put(protect, unfollow)
 router.route('/update').put(protect, updateUserCrediantials)
 router.route('/updatePassword').put(protect, updatePassword)
 router.route('/verify/:token').get(verifyEmail);
+router.route('/resendEmailVerification').put(resendEmailVerification);
 router.route('/logout').get(protect, logout);
 router.route('/uploadProfilePic').put(protect, uploadProfilePic);
 router.route('/deleteProfilePic').delete(protect, deleteProfilePic);

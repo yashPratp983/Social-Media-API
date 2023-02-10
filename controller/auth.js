@@ -81,6 +81,36 @@ exports.register = asyncHandler(async (req, res, next) => {
     }
 })
 
+exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) {
+        return next(new errorResponse('Invalid Input', 404));
+    }
+    const token = user.getVerificationToken();
+
+    await user.save({ validateBeforeSave: false });
+
+    const verificationUrl = `https://musical-monstera-20ce50.netlify.app/emailverification/${token}`;
+
+    const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+    try {
+        await sendEmail({
+            email: user.email,
+            subject: 'Email Verification',
+            message
+        })
+        res.status(200).json({ success: true, data: 'Email sent' });
+    }
+    catch (err) {
+        console.log(err);
+        user.verificationToken = undefined;
+        user.verificationTokenExpire = undefined;
+        await user.save({ validateBeforeSave: false });
+        return next(new errorResponse('Email could not be sent', 500));
+    }
+})
+
 exports.verifyEmail = asyncHandler(async (req, res, next) => {
     const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
