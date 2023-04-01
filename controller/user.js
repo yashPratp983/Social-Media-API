@@ -3,6 +3,25 @@ const errorResponse = require('../utils/ErrorHandler');
 const asyncHandler = require('../middleware/asyncHandler')
 const cloudinary = require('../utils/cloudinary');
 const Notifications = require('../modals/Notificaton');
+const redis = require('redis');
+// const client = redis.createClient(6379);
+
+let client;
+const redisConnect = async () => {
+    client = redis.createClient(6379);
+
+    client.on('error', err => console.log('Redis Client Error', err));
+
+    client.on('connect', () => {
+        console.log('Redis client connected');
+    });
+
+    await client.connect();
+    // console.log(client);
+}
+
+redisConnect()
+
 
 exports.follow = asyncHandler(async (req, res, next) => {
     const user1 = await User.findOne({ _id: req.params.id });
@@ -23,7 +42,30 @@ exports.follow = asyncHandler(async (req, res, next) => {
 })
 
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
+    // Get users from Redis
+    await client.lRange('users', 0, -1, (err, reply) => {
+        if (err) {
+            console.log(err);
+        }
+        console.log("users from Redis", reply);
+    });
+
+    // Get users from MongoDB
     let users = await User.find();
+
+    // Save users to Redis
+    for (const user of users) {
+        const userStr = JSON.stringify(user);
+        await client.lPush('users', userStr, (err, reply) => {
+            if (err) {
+                console.log(err);
+            } else {
+                console.log("user saved to Redis", reply);
+            }
+        });
+    }
+
+    // Map users to new array
     let users1 = users.map(user => {
         return {
             _id: user._id,
@@ -33,10 +75,11 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
             following: user.following.length,
             bio: user.bio
         }
-    })
+    });
 
+    // Send response to client
     res.status(200).send({ success: true, data: users1 });
-})
+});
 
 
 exports.getAUser = asyncHandler(async (req, res, next) => {

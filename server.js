@@ -18,7 +18,13 @@ const hpp = require('hpp');
 const fileUpload = require('express-fileupload');
 const notification = require('./routes/notification')
 const messageNotification = require('./routes/messageNotification')
-const { Server } = require("socket.io")
+const { Server } = require("socket.io");
+const redis = require('redis');
+const connectRedis = require('./config/redis')
+
+
+
+
 
 mongoose.set('strictQuery', true);
 dotenv.config({ path: './config/config.env' })
