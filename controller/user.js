@@ -3,24 +3,7 @@ const errorResponse = require('../utils/ErrorHandler');
 const asyncHandler = require('../middleware/asyncHandler')
 const cloudinary = require('../utils/cloudinary');
 const Notifications = require('../modals/Notificaton');
-const redis = require('redis');
-// const client = redis.createClient(6379);
-
-let client;
-const redisConnect = async () => {
-    client = redis.createClient(6379);
-
-    client.on('error', err => console.log('Redis Client Error', err));
-
-    client.on('connect', () => {
-        console.log('Redis client connected');
-    });
-
-    await client.connect();
-    // console.log(client);
-}
-
-redisConnect()
+const client = require('../config/redis');
 
 
 exports.follow = asyncHandler(async (req, res, next) => {
@@ -42,28 +25,11 @@ exports.follow = asyncHandler(async (req, res, next) => {
 })
 
 exports.getAllUsers = asyncHandler(async (req, res, next) => {
-    // Get users from Redis
-    await client.lRange('users', 0, -1, (err, reply) => {
-        if (err) {
-            console.log(err);
-        }
-        console.log("users from Redis", reply);
-    });
-
+    let redisUsers = await client.lRange('users', 0, -1);
+    redisUsers = redisUsers.map(user => JSON.parse(user));
     // Get users from MongoDB
-    let users = await User.find();
+    let users = await User.find().select('+password');
 
-    // Save users to Redis
-    for (const user of users) {
-        const userStr = JSON.stringify(user);
-        await client.lPush('users', userStr, (err, reply) => {
-            if (err) {
-                console.log(err);
-            } else {
-                console.log("user saved to Redis", reply);
-            }
-        });
-    }
 
     // Map users to new array
     let users1 = users.map(user => {
@@ -77,13 +43,63 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
         }
     });
 
+    let users2 = users.map(user => {
+        return {
+            _id: user._id,
+            name: user.name,
+            profilePic: user.profilePic,
+            followers: user.followers.length,
+            following: user.following.length,
+            bio: user.bio,
+            email: user.email,
+            password: user.password
+        }
+    });
+
+
+    // Save users to Redis if they are  not already there
+    users2.forEach(async (user) => {
+        try {
+            let c = 0;
+            redisUsers.forEach(async (redisUser) => {
+                if (redisUser._id == user._id) {
+                    c++;
+                }
+            })
+            if (c == 0) {
+                await client.rPush('users', JSON.stringify(user));
+            }
+        } catch (err) {
+            console.log(err, "err");
+        }
+    });
+
+
+
     // Send response to client
     res.status(200).send({ success: true, data: users1 });
+
 });
 
 
 exports.getAUser = asyncHandler(async (req, res, next) => {
-    const user = await User.findById(req.params.id);
+
+    let redisUsers = await client.lRange('users', 0, -1);
+
+    redisUsers = redisUsers.map(user => JSON.parse(user));
+
+
+
+    let searchedUser = redisUsers.find(user => user._id == req.params.id);
+
+    if (searchedUser) {
+        console.log("from redis");
+        delete searchedUser.password;
+        delete searchedUser.email;
+        return res.status(200).send({ success: true, data: searchedUser });
+    }
+
+    const user = await User.findById(req.params.id).select('+password');
 
     if (!user) {
         next(`User not found with id ${req.params.id}`, 401);
@@ -98,6 +114,19 @@ exports.getAUser = asyncHandler(async (req, res, next) => {
         bio: user.bio
 
     }
+
+    const redisData = {
+        _id: user._id,
+        name: user.name,
+        profilePic: user.profilePic,
+        followers: user.followers.length,
+        following: user.following.length,
+        bio: user.bio,
+        email: user.email,
+        password: user.password
+    }
+
+    await client.rPush('users', JSON.stringify(redisData));
 
     res.status(200).send({ success: true, data: data });
 })
