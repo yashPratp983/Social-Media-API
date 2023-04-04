@@ -21,6 +21,57 @@ exports.follow = asyncHandler(async (req, res, next) => {
     user1.save();
     req.user.save();
 
+    let redisUsers = await client.lRange('users', 0, -1);
+    redisUsers = redisUsers.map(user => JSON.parse(user));
+
+    let user2 = redisUsers.find(user => user._id == req.user._id);
+    let user3 = redisUsers.find(user => user._id == user1._id);
+
+    if (!user2) {
+        user2 = req.user.map(user => {
+            return {
+                _id: user._id,
+                name: user.name,
+                profilePic: user.profilePic,
+                followers: user.followers,
+                following: user.following,
+                bio: user.bio,
+                email: user.email,
+            }
+        });
+        await client.rPush('users', JSON.stringify(user2));
+    }
+
+    if (!user3) {
+        user3 = user1.map(user => {
+            return {
+                _id: user._id,
+                name: user.name,
+                profilePic: user.profilePic,
+                followers: user.followers,
+                following: user.following,
+                bio: user.bio,
+                password: user.password
+            }
+        });
+        await client.rPush('users', JSON.stringify(user3));
+    }
+
+    user2.following = req.user.following;
+    user3.followers = user1.followers;
+
+    redisUsers.forEach(async (user) => {
+        if (user._id == user2._id) {
+            await client.lRem('users', 0, JSON.stringify(user));
+            await client.rPush('users', JSON.stringify(user2));
+        }
+        if (user._id == user3._id) {
+            await client.lRem('users', 0, JSON.stringify(user));
+            await client.rPush('users', JSON.stringify(user3));
+        }
+    })
+
+
     res.status(202).send({ success: true, data: req.user });
 })
 
@@ -48,8 +99,8 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
             _id: user._id,
             name: user.name,
             profilePic: user.profilePic,
-            followers: user.followers.length,
-            following: user.following.length,
+            followers: user.followers,
+            following: user.following,
             bio: user.bio,
             email: user.email,
             password: user.password
@@ -96,6 +147,8 @@ exports.getAUser = asyncHandler(async (req, res, next) => {
         console.log("from redis");
         delete searchedUser.password;
         delete searchedUser.email;
+        searchedUser.followers = searchedUser.followers.length;
+        searchedUser.following = searchedUser.following.length;
         return res.status(200).send({ success: true, data: searchedUser });
     }
 
@@ -119,8 +172,8 @@ exports.getAUser = asyncHandler(async (req, res, next) => {
         _id: user._id,
         name: user.name,
         profilePic: user.profilePic,
-        followers: user.followers.length,
-        following: user.following.length,
+        followers: user.followers,
+        following: user.following,
         bio: user.bio,
         email: user.email,
         password: user.password
@@ -145,6 +198,79 @@ exports.unfollow = asyncHandler(async (req, res, next) => {
     }
     user1.save();
     req.user.save();
+    const length = await client.lLen('users');
+    if (length == 0) {
+        const users = await User.find().select('+password');
+        users.forEach(async (user) => {
+            let user1 = {
+                _id: user._id,
+                name: user.name,
+                profilePic: user.profilePic,
+                followers: user.followers,
+                following: user.following,
+                bio: user.bio,
+                email: user.email,
+                password: user.password
+            }
+            await client.rPush('users', JSON.stringify(user1));
+        })
+    }
+    else {
+
+        let redisUsers = await client.lRange('users', 0, -1);
+        redisUsers = redisUsers.map(user => JSON.parse(user));
+
+        let user2 = redisUsers.find(user => user._id == req.user._id);
+        let user3 = redisUsers.find(user => user._id == user1._id);
+
+
+
+        if (!user2) {
+            console.log("not found")
+            user2 = {
+                _id: req.user._id,
+                name: req.user.name,
+                profilePic: req.user.profilePic,
+                followers: req.user.followers,
+                following: req.user.following,
+                bio: req.user.bio,
+                email: req.user.email,
+            }
+
+            await client.rPush('users', JSON.stringify(user2));
+        }
+
+        if (!user3) {
+            console.log("not found")
+            user3 = {
+                _id: user1._id,
+                name: user1.name,
+                profilePic: user1.profilePic,
+                followers: user1.followers,
+                following: user1.following,
+                bio: user1.bio,
+                password: user1.password
+            }
+            await client.rPush('users', JSON.stringify(user3));
+        }
+
+        user2.following = req.user.following;
+        user3.followers = user1.followers;
+
+        redisUsers.forEach(async (user) => {
+            if (user._id == user2._id) {
+                user = user2;
+            }
+            if (user._id == user3._id) {
+                user = user3;
+            }
+        })
+
+        await client.del('users');
+        redisUsers.forEach(async (user) => {
+            await client.rPush('users', JSON.stringify(user));
+        })
+    }
 
     res.status(202).send({ success: true, data: req.user });
 })
@@ -212,6 +338,35 @@ exports.uploadProfilePic = asyncHandler(async (req, res, next) => {
 
     user.profilePic = profilePic;
     await user.save();
+
+    const length = await client.lLen('users');
+
+    if (length == 0) {
+        const users = await User.find().select('+password');
+        users.forEach(async (use) => {
+            let user1 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password }
+            await client.rPush('users', JSON.stringify(user1));
+        })
+    }
+    else {
+        const redisUsers = await client.lRange('users', 0, -1);
+
+        redisUsers.forEach(async (use) => {
+            use = JSON.parse(use);
+            if (use._id == user._id) {
+                console.log("found")
+                // use = { _id: user._id, name: user.name, profilePic: user.profilePic, followers: user.followers, following: user.following, bio: user.bio, email: user.email, password: use.password }
+            }
+        })
+
+        await client.del('users');
+        redisUsers.forEach(async (use) => {
+            await client.rPush('users', JSON.stringify(use));
+        }
+        )
+
+    }
+
     res.status(200).send({ success: true, data: user });
 })
 
