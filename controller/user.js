@@ -106,7 +106,16 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
         })
 
         users.forEach(async (use) => {
-            let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist }
+            let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+            if (use.resetPasswordToken) {
+                user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+            }
+            if (use.verificationToken) {
+                user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+            }
+            if (use.unverifiedEmail) {
+                user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+            }
             await client.rPush('users', JSON.stringify(user2));
         })
 
@@ -153,18 +162,18 @@ exports.getAUser = asyncHandler(async (req, res, next) => {
 
     }
 
-    const redisData = {
-        _id: user._id,
-        name: user.name,
-        profilePic: user.profilePic,
-        followers: user.followers,
-        following: user.following,
-        bio: user.bio,
-        email: user.email,
-        password: user.password,
-        blocklist: user.blocklist
+    const redisData = { _id: user._id, name: user.name, profilePic: user.profilePic, followers: user.followers, following: user.following, bio: user.bio, email: user.email, password: user.password, blocklist: user.blocklist, isVerified: user.isVerified, createdAt: user.createdAt }
+
+    if (user.resetPasswordToken) {
+        redisData = { ...redisData, resetPasswordToken: user.resetPasswordToken, resetPasswordExpire: user.resetPasswordExpire }
     }
 
+    if (user.verificationToken) {
+        redisData = { ...redisData, verificationToken: user.verificationToken, verificationTokenExpire: user, verificationTokenExpire }
+    }
+    if (user.unverifiedEmail) {
+        redisData = { ...redisData, unverifiedEmail: user.unverifiedEmail }
+    }
     await client.rPush('users', JSON.stringify(redisData));
 
     res.status(200).send({ success: true, data: data });
@@ -187,9 +196,18 @@ exports.unfollow = asyncHandler(async (req, res, next) => {
 
     const users = await User.find().select('+password');
     await client.del('users');
-    users.forEach(async (user) => {
-        let user1 = { _id: user._id, name: user.name, profilePic: user.profilePic, followers: user.followers, following: user.following, bio: user.bio, email: user.email, password: user.password };
-        await client.rPush('users', JSON.stringify(user1));
+    users.forEach(async (use) => {
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
+        await client.rPush('users', JSON.stringify(user2));
     })
 
     res.status(202).send({ success: true, data: req.user });
@@ -212,8 +230,17 @@ exports.block = asyncHandler(async (req, res, next) => {
 
     const users = await User.find().select('+password');
     await client.del('users');
-    users.forEach(async (user) => {
-        let user2 = { _id: user._id, name: user.name, profilePic: user.profilePic, followers: user.followers, following: user.following, bio: user.bio, email: user.email, password: user.password, blocklist: user.blocklist }
+    users.forEach(async (use) => {
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
         await client.rPush('users', JSON.stringify(user2));
     })
     delete req.user.password;
@@ -270,8 +297,17 @@ exports.uploadProfilePic = asyncHandler(async (req, res, next) => {
 
     const users = await User.find().select('+password');
     users.forEach(async (use) => {
-        let user1 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist }
-        await client.rPush('users', JSON.stringify(user1));
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
+        await client.rPush('users', JSON.stringify(user2));
     })
 
     res.status(200).send({ success: true, data: user });
@@ -307,8 +343,17 @@ exports.deleteProfilePic = asyncHandler(async (req, res, next) => {
 
     const users = await User.find().select('+password');
     users.forEach(async (use) => {
-        let user1 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist }
-        await client.rPush('users', JSON.stringify(user1));
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
+        await client.rPush('users', JSON.stringify(user2));
     })
 
 
@@ -328,8 +373,17 @@ exports.addBio = asyncHandler(async (req, res, next) => {
     await client.del('users');
     const users = await User.find().select('+password');
     users.forEach(async (use) => {
-        let user1 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist }
-        await client.rPush('users', JSON.stringify(user1));
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
+        await client.rPush('users', JSON.stringify(user2));
     })
 
     res.status(200).send({ success: true, data: user });
@@ -359,6 +413,13 @@ exports.getFollows = asyncHandler(async (req, res, next) => {
             let user = users.find((user) => user._id == use.followers[i]);
             delete user.password;
             delete user.blocklist;
+            delete user.isVerified;
+            delete user.createdAt;
+            delete user.verificationToken;
+            delete user.verificationTokenExpire;
+            delete user.unverifiedEmail;
+            delete user.resetPasswordToken;
+            delete user.resetPasswordExpire;
             follower.push(user);
         }
 
@@ -366,6 +427,13 @@ exports.getFollows = asyncHandler(async (req, res, next) => {
             let user = users.find((user) => user._id == use.following[i]);
             delete user.password;
             delete user.blocklist;
+            delete user.isVerified;
+            delete user.createdAt;
+            delete user.verificationToken;
+            delete user.verificationTokenExpire;
+            delete user.unverifiedEmail;
+            delete user.resetPasswordToken;
+            delete user.resetPasswordExpire;
             following.push(user);
         }
 
@@ -392,18 +460,54 @@ exports.getFollows = asyncHandler(async (req, res, next) => {
         await client.del('users');
         const users1 = await User.find().select('+password');
         users1.forEach(async (use) => {
-            let user1 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist }
-            await client.rPush('users', JSON.stringify(user1));
+            let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+            if (use.resetPasswordToken) {
+                user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+            }
+            if (use.verificationToken) {
+                user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+            }
+            if (use.unverifiedEmail) {
+                user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+            }
+            await client.rPush('users', JSON.stringify(user2));
         })
 
         followers.forEach((followe) => {
             delete followe.password;
             delete followe.blocklist;
+            delete followe.createdAt;
+            delete followe.isVerified;
+            if (followe.resetPasswordToken) {
+                delete followe.resetPasswordToken;
+                delete followe.resetPasswordExpire
+            }
+            if (followe.verificationToken) {
+                delete followe.verificationToken;
+                delete followe.verificationTokenExpire
+            }
+            if (followe.unverifiedEmail) {
+                delete followe.unverifiedEmail;
+            }
+
         })
 
         following.forEach((follow) => {
             delete follow.password;
             delete follow.blocklist;
+            delete follow.createdAt;
+            delete follow.isVerified;
+            if (follow.resetPasswordToken) {
+                delete follow.resetPasswordToken;
+                delete follow.resetPasswordExpire
+            }
+            if (follow.verificationToken) {
+                delete follow.verificationToken;
+                delete follow.verificationTokenExpire
+            }
+            if (follow.unverifiedEmail) {
+                delete follow.unverifiedEmail;
+            }
         })
 
         res.status(200).send({ success: true, data: { followers: followers, following: following } });
@@ -426,8 +530,14 @@ exports.blockUser = asyncHandler(async (req, res, next) => {
     await client.del('users');
     const users = await User.find().select('+password');
     users.forEach(async (use) => {
-        let user = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist }
-        await client.rPush('users', JSON.stringify(user));
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        await client.rPush('users', JSON.stringify(user2));
     })
 
     res.status(200).send({ success: true, data: user2 });
@@ -449,8 +559,14 @@ exports.unblockUser = asyncHandler(async (req, res, next) => {
 
     const users = await User.find().select('+password');
     users.forEach(async (use) => {
-        let user = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist }
-        await client.rPush('users', JSON.stringify(user));
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        await client.rPush('users', JSON.stringify(user2));
     })
 
     res.status(200).send({ success: true, data: user2 });

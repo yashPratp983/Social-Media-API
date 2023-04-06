@@ -8,6 +8,7 @@ const sendEmail = require('../utils/emailhandler');
 const crypto = require('crypto');
 const emailValidator = require('email-validator');
 const cloudinary = require('../utils/cloudinary');
+const client = require('../config/redis');
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
@@ -32,7 +33,20 @@ exports.login = asyncHandler(async (req, res, next) => {
         return next(new errorResponse('Invalid Input', 404));
     }
 
+    const length = await client.lLen('users')
+    if (length === 0) {
+        const Users = await User.find().select('+password')
+
+        await client.del('users')
+
+        Users.forEach(async (use) => {
+            let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+            await client.rPush('users', JSON.stringify(user2))
+        })
+    }
+
     sendTokenResponse(user, 200, res)
+
 })
 
 exports.register = asyncHandler(async (req, res, next) => {
@@ -65,6 +79,24 @@ exports.register = asyncHandler(async (req, res, next) => {
 
     const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
 
+    let users = await User.find().select('+password')
+
+    await client.del('users')
+
+    users.forEach(async (use) => {
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
+        await client.rPush('users', JSON.stringify(user2));
+    })
+
     try {
         await sendEmail({
             email: user.email,
@@ -77,6 +109,26 @@ exports.register = asyncHandler(async (req, res, next) => {
         user.verificationToken = undefined;
         user.verificationTokenExpire = undefined;
         await user.save({ validateBeforeSave: false });
+
+        users = await User.find().select('+password')
+
+        await client.del('users')
+
+        users.forEach(async (use) => {
+            let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+            if (use.resetPasswordToken) {
+                user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+            }
+            if (use.verificationToken) {
+                user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+            }
+            if (use.unverifiedEmail) {
+                user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+            }
+            await client.rPush('users', JSON.stringify(user2));
+            return next(new errorResponse('Email could not be sent', 500));
+        })
+
         return next(new errorResponse('Email could not be sent', 500));
     }
 })
@@ -94,6 +146,25 @@ exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
 
     const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
 
+    let users = await User.find().select('+password')
+
+    await client.del('users')
+
+    users.forEach(async (use) => {
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
+        await client.rPush('users', JSON.stringify(user2));
+    })
+
+
     try {
         await sendEmail({
             email: user.email,
@@ -107,6 +178,26 @@ exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
         user.verificationToken = undefined;
         user.verificationTokenExpire = undefined;
         await user.save({ validateBeforeSave: false });
+
+        users = await User.find().select('+password')
+
+        await client.del('users')
+
+        users.forEach(async (use) => {
+            let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+            if (use.resetPasswordToken) {
+                user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+            }
+            if (use.verificationToken) {
+                user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+            }
+            if (use.unverifiedEmail) {
+                user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+            }
+            await client.rPush('users', JSON.stringify(user2));
+        })
+
+
         return next(new errorResponse('Email could not be sent', 500));
     }
 })
@@ -172,6 +263,23 @@ exports.updatePassword = asyncHandler(async (req, res, next) => {
 
     user.password = req.body.newPassword;
     await user.save();
+    const users = await User.find().select('+password')
+
+    await client.del('users')
+
+    users.forEach(async (use) => {
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
+        await client.rPush('users', JSON.stringify(user2));
+    })
 
     sendTokenResponse(user, 200, res);
 })
@@ -215,12 +323,47 @@ exports.updateUserCrediantials = asyncHandler(async (req, res, next) => {
                 subject: 'Email Verification',
                 message
             })
+
+            const users = await User.find().select('+password')
+
+            await client.del('users')
+
+            users.forEach(async (use) => {
+                let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+                if (use.resetPasswordToken) {
+                    user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+                }
+                if (use.verificationToken) {
+                    user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+                }
+                if (use.unverifiedEmail) {
+                    user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+                }
+                await client.rPush('users', JSON.stringify(user2));
+            })
             return res.status(200).json({ success: true, data: 'Email sent', user });
         } catch (err) {
             console.log(err);
             user.verificationToken = undefined;
             user.verificationTokenExpire = undefined;
             await user.save({ validateBeforeSave: false });
+            const users = await User.find().select('+password')
+
+            await client.del('users')
+
+            users.forEach(async (use) => {
+                let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+                if (use.resetPasswordToken) {
+                    user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+                }
+                if (use.verificationToken) {
+                    user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+                }
+                if (use.unverifiedEmail) {
+                    user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+                }
+                await client.rPush('users', JSON.stringify(user2));
+            })
             return next(new errorResponse('Email could not be sent', 500));
         }
 
@@ -250,7 +393,23 @@ exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
 
     try {
         await sendEmail(options);
+        const users = await User.find().select('+password')
 
+        await client.del('users')
+
+        users.forEach(async (use) => {
+            let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+            if (use.resetPasswordToken) {
+                user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+            }
+            if (use.verificationToken) {
+                user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+            }
+            if (use.unverifiedEmail) {
+                user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+            }
+            await client.rPush('users', JSON.stringify(user2));
+        })
         res.status(200).json({ success: true, data: 'Email sent' });
     } catch (err) {
         console.log(err);
@@ -258,6 +417,24 @@ exports.forgotPasswordToken = asyncHandler(async (req, res, next) => {
         user.resetPasswordExpire = undefined;
 
         await user.save({ validateBeforeSave: false });
+
+        const users = await User.find().select('+password')
+
+        await client.del('users')
+
+        users.forEach(async (use) => {
+            let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+            if (use.resetPasswordToken) {
+                user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+            }
+            if (use.verificationToken) {
+                user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+            }
+            if (use.unverifiedEmail) {
+                user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+            }
+            await client.rPush('users', JSON.stringify(user2));
+        })
 
         return next(new errorResponse('Email could not be sent', 500));
     }
@@ -278,6 +455,24 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
     user.resetPasswordExpire = undefined;
 
     await user.save();
+
+    const users = await User.find().select('+password')
+
+    await client.del('users')
+
+    users.forEach(async (use) => {
+        let user2 = { _id: use._id, name: use.name, profilePic: use.profilePic, followers: use.followers, following: use.following, bio: use.bio, email: use.email, password: use.password, blocklist: use.blocklist, isVerified: use.isVerified, createdAt: use.createdAt }
+        if (use.resetPasswordToken) {
+            user2 = { ...user2, resetPasswordToken: use.resetPasswordToken, resetPasswordExpire: use.resetPasswordExpire }
+        }
+        if (use.verificationToken) {
+            user2 = { ...user2, verificationToken: use.verificationToken, verificationTokenExpire: use.verificationTokenExpire }
+        }
+        if (use.unverifiedEmail) {
+            user2 = { ...user2, unverifiedEmail: use.unverifiedEmail }
+        }
+        await client.rPush('users', JSON.stringify(user2));
+    })
 
     sendTokenResponse(user, 200, res);
 })
